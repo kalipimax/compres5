@@ -21,12 +21,21 @@ if [[ "${MOB_VID^^}" =~ ^(Y|YES)$ ]]; then
     AUDIO_CH=2
     CRF=23
     SKIP_SAMPLE=1
+    PRESET_MAIN="medium"
 else
     MIN_SAVE=$(get_input "Minimum percentage space saving" "10")
     TARGET_HEIGHT=$(get_input "Target vertical resolution" "1080")
     IGNORE_SMALL=$(get_input "Ignore files ≤${TARGET_HEIGHT}p (YES/NO)" "NO")
     AUDIO_CH=$(get_input "Audio channels (1=mono, 2=stereo)" "2")
     CRF=$(get_input "CRF value (17–28, lower = better quality)" "27")
+
+    SPEED=$(get_input "Compression speed (slow/medium/fast)" "medium")
+    case "${SPEED,,}" in
+        slow)   PRESET_MAIN="slow" ;;
+        fast)   PRESET_MAIN="fast" ;;
+        *)      PRESET_MAIN="medium" ;;
+    esac
+
     SKIP_SAMPLE=0
 fi
 
@@ -57,7 +66,7 @@ test_sample() {
         -vf "scale='if(gt(ih,${TARGET_HEIGHT}),-2,iw)':'if(gt(ih,${TARGET_HEIGHT}),${TARGET_HEIGHT},ih)',setsar=1" \
         -r "${TARGET_FRAMERATE}" \
         -af "${AUDIO_FILTER}" \
-        -c:v libx265 -crf ${CRF} -preset slow \
+        -c:v libx265 -crf ${CRF} -preset veryfast \
         -c:a aac -b:a 128k ${AUDIO_OPTS} \
         -threads 4 "$tmp_new" >/dev/null 2>&1 || { rm -f "$tmp_orig" "$tmp_new"; echo "0"; return; }
 
@@ -89,7 +98,7 @@ full_compress() {
         -vf "$scale_filter" \
         -r "${TARGET_FRAMERATE}" \
         -af "${AUDIO_FILTER}" \
-        -c:v libx265 -crf ${CRF} -preset slow \
+        -c:v libx265 -crf ${CRF} -preset ${PRESET_MAIN} \
         -c:a aac -b:a 128k ${AUDIO_OPTS} \
         -movflags +faststart \
         -threads 0 \
